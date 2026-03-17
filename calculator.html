@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .calculator {
+    background: #16213e;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    width: 320px;
+  }
+  .display {
+    background: #0f3460;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: right;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .display .expression {
+    color: #7f8fa6;
+    font-size: 14px;
+    min-height: 20px;
+    word-break: break-all;
+  }
+  .display .value {
+    color: #e4e6eb;
+    font-size: 36px;
+    font-weight: 300;
+    word-break: break-all;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  button {
+    padding: 18px;
+    font-size: 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    font-family: inherit;
+  }
+  button:active { transform: scale(0.95); }
+  .btn-num {
+    background: #1a1a40;
+    color: #e4e6eb;
+  }
+  .btn-num:hover { background: #2a2a50; }
+  .btn-op {
+    background: #e94560;
+    color: #fff;
+  }
+  .btn-op:hover { background: #ff6b81; }
+  .btn-eq {
+    background: #533483;
+    color: #fff;
+    grid-column: span 2;
+  }
+  .btn-eq:hover { background: #6c44a2; }
+  .btn-clear {
+    background: #c23616;
+    color: #fff;
+    grid-column: span 2;
+  }
+  .btn-clear:hover { background: #e84118; }
+</style>
+</head>
+<body>
+<div class="calculator">
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div class="value" id="display">0</div>
+  </div>
+  <div class="buttons">
+    <button class="btn-clear" onclick="clearAll()">C</button>
+    <button class="btn-op" onclick="inputOp('÷')">÷</button>
+    <button class="btn-op" onclick="inputOp('×')">×</button>
+    <button class="btn-num" onclick="inputDigit('7')">7</button>
+    <button class="btn-num" onclick="inputDigit('8')">8</button>
+    <button class="btn-num" onclick="inputDigit('9')">9</button>
+    <button class="btn-op" onclick="inputOp('-')">-</button>
+    <button class="btn-num" onclick="inputDigit('4')">4</button>
+    <button class="btn-num" onclick="inputDigit('5')">5</button>
+    <button class="btn-num" onclick="inputDigit('6')">6</button>
+    <button class="btn-op" onclick="inputOp('+')">+</button>
+    <button class="btn-num" onclick="inputDigit('1')">1</button>
+    <button class="btn-num" onclick="inputDigit('2')">2</button>
+    <button class="btn-num" onclick="inputDigit('3')">3</button>
+    <button class="btn-eq" rowspan="2" onclick="calculate()">=</button>
+    <button class="btn-num" onclick="inputDigit('0')">0</button>
+    <button class="btn-num" onclick="inputDot()">.</button>
+  </div>
+</div>
+<script>
+  let current = '0';
+  let previous = null;
+  let operator = null;
+  let resetNext = false;
+
+  const display = document.getElementById('display');
+  const expression = document.getElementById('expression');
+
+  function updateDisplay() {
+    display.textContent = current;
+  }
+
+  function inputDigit(d) {
+    if (resetNext) { current = '0'; resetNext = false; }
+    current = current === '0' ? d : current + d;
+    updateDisplay();
+  }
+
+  function inputDot() {
+    if (resetNext) { current = '0'; resetNext = false; }
+    if (!current.includes('.')) current += '.';
+    updateDisplay();
+  }
+
+  function inputOp(op) {
+    if (operator && !resetNext) {
+      calculate(true);
+    }
+    previous = parseFloat(current);
+    operator = op;
+    expression.textContent = current + ' ' + op;
+    resetNext = true;
+  }
+
+  function calculate(chaining) {
+    if (operator === null || previous === null) return;
+    const b = parseFloat(current);
+    let result;
+    switch (operator) {
+      case '+': result = previous + b; break;
+      case '-': result = previous - b; break;
+      case '×': result = previous * b; break;
+      case '÷':
+        if (b === 0) {
+          current = 'Error';
+          expression.textContent = '';
+          operator = null;
+          previous = null;
+          resetNext = true;
+          updateDisplay();
+          return;
+        }
+        result = previous / b;
+        break;
+    }
+    // Avoid floating point display issues
+    result = Math.round(result * 1e12) / 1e12;
+    if (!chaining) expression.textContent = '';
+    current = String(result);
+    if (!chaining) { operator = null; previous = null; }
+    else { previous = result; }
+    resetNext = true;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    current = '0';
+    previous = null;
+    operator = null;
+    resetNext = false;
+    expression.textContent = '';
+    updateDisplay();
+  }
+</script>
+</body>
+</html>

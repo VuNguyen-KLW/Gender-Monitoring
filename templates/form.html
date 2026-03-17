@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Form</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+        .container { background: #fff; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); width: 100%; max-width: 420px; }
+        h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: #1a1a2e; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; color: #555; margin-bottom: 0.3rem; }
+        input, select { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; margin-bottom: 1rem; outline: none; transition: border 0.2s; }
+        input:focus, select:focus { border-color: #4361ee; }
+        button { width: 100%; padding: 0.7rem; background: #4361ee; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #3a56d4; }
+        .msg { padding: 0.6rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; display: none; }
+        .msg.success { display: block; background: #d4edda; color: #155724; }
+        .msg.error { display: block; background: #f8d7da; color: #721c24; }
+        nav { margin-top: 1.2rem; text-align: center; }
+        nav a { color: #4361ee; text-decoration: none; font-size: 0.9rem; }
+        nav a:hover { text-decoration: underline; }
+        .divider { border: none; border-top: 1px solid #e0e0e0; margin: 1.8rem 0; }
+        .upload-section h2 { font-size: 1.25rem; margin-bottom: 1rem; color: #1a1a2e; }
+        .file-input-wrapper { border: 2px dashed #ddd; border-radius: 8px; padding: 1.2rem; text-align: center; margin-bottom: 1rem; transition: border-color 0.2s; }
+        .file-input-wrapper:hover { border-color: #4361ee; }
+        .file-input-wrapper input[type="file"] { font-size: 0.9rem; }
+        .template-link { display: inline-block; margin-bottom: 1rem; color: #4361ee; text-decoration: none; font-size: 0.9rem; }
+        .template-link:hover { text-decoration: underline; }
+        .results { margin-top: 1rem; }
+        .error-list { background: #f8d7da; color: #721c24; border-radius: 8px; padding: 0.8rem; margin-top: 0.5rem; font-size: 0.85rem; }
+        .error-list p { margin-bottom: 0.3rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Add User</h1>
+        <div id="msg" class="msg"></div>
+        <form id="userForm">
+            <label for="name">Name</label>
+            <input type="text" id="name" required placeholder="Enter name">
+
+            <label for="age">Age</label>
+            <input type="number" id="age" required min="0" max="150" placeholder="Enter age">
+
+            <label for="gender">Gender</label>
+            <select id="gender" required>
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <button type="submit">Submit</button>
+        </form>
+        <nav><a href="/dashboard">View Dashboard &rarr;</a></nav>
+
+        <hr class="divider">
+
+        <div class="upload-section">
+            <h2>Bulk Upload</h2>
+            <a href="/api/users/template" class="template-link">Download Excel template</a>
+            <form id="bulkForm">
+                <div class="file-input-wrapper">
+                    <input type="file" id="bulkFile" accept=".xlsx" required>
+                </div>
+                <button type="submit">Upload</button>
+            </form>
+            <div id="bulkResults" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('userForm');
+        const msg = document.getElementById('msg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            msg.className = 'msg';
+            msg.style.display = 'none';
+
+            const body = {
+                name: document.getElementById('name').value,
+                age: parseInt(document.getElementById('age').value),
+                gender: document.getElementById('gender').value
+            };
+
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msg.textContent = data.message;
+                    msg.className = 'msg success';
+                    form.reset();
+                } else {
+                    msg.textContent = data.error;
+                    msg.className = 'msg error';
+                }
+            } catch {
+                msg.textContent = 'Failed to connect to server';
+                msg.className = 'msg error';
+            }
+        });
+
+        const bulkForm = document.getElementById('bulkForm');
+        const bulkResults = document.getElementById('bulkResults');
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        bulkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            bulkResults.textContent = '';
+            const fileInput = document.getElementById('bulkFile');
+            if (!fileInput.files.length) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/users/bulk', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) {
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'msg error';
+                    errDiv.textContent = data.error;
+                    bulkResults.appendChild(errDiv);
+                    return;
+                }
+                const successDiv = document.createElement('div');
+                successDiv.className = 'msg success';
+                successDiv.textContent = data.success_count + ' user(s) added successfully.';
+                bulkResults.appendChild(successDiv);
+
+                if (data.error_count > 0) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-list';
+                    const strong = document.createElement('strong');
+                    strong.textContent = data.error_count + ' row(s) had errors:';
+                    errorDiv.appendChild(strong);
+                    data.errors.forEach(err => {
+                        const p = document.createElement('p');
+                        p.textContent = 'Row ' + err.row + ': ' + err.errors.join('; ');
+                        errorDiv.appendChild(p);
+                    });
+                    bulkResults.appendChild(errorDiv);
+                }
+                bulkForm.reset();
+            } catch {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'msg error';
+                errDiv.textContent = 'Failed to connect to server';
+                bulkResults.appendChild(errDiv);
+            }
+        });
+    </script>
+</body>
+</html>
